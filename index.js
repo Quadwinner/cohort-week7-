@@ -1,3 +1,4 @@
+const bcrypt = require("bcrypt");
 const express = require("express");
 const { UserModel, TodoModel } = require("./db");
 const jwt = require("jsonwebtoken");
@@ -15,9 +16,13 @@ app.post("/signup", async function (req, res) {
     const password = req.body.password;
     const name = req.body.name;
 
+
+    const hasedPassword = await bcrypt.hash(password, 5);
+    console.log(hasedPassword);
+
     await UserModel.create({
         email: email,
-        password: password,
+        password: hasedPassword,
         name: name
     });
     res.json({
