@@ -7,6 +7,8 @@ const path = require("path");
 const bodyParser = require('body-parser');
 
 const JWT_SECRET = "mynmaeisshubham ";
+const {z} = require('zod');
+const { error } = require("console");
 
 mongoose.connect("mongodb+srv://shubhamkush0123:aBW6uW9FUUqbbZ86@cluster0.obpzn.mongodb.net/todo-shubham");
 const app = express();
@@ -16,21 +18,40 @@ app.use(express.json());
 app.use(bodyParser.json());
 
 app.post("/signup", async function (req, res) {
+    const requiredBody = z.object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        name: z.string().min(3)
+    });
+    const parsedDataWithSuccess = requiredBody.safeParse(req.body);
+    if (!parsedDataWithSuccess.success) {
+        return res.json({
+            message: "Invalid Formate",
+            error: parsedDataWithSuccess.error,
+            message: parsedDataWithSuccess.error.errors[0].message
+        });
+    }
+
     const email = req.body.email;
     const password = req.body.password;
     const name = req.body.name;
+    try {
+        const hashedPassword = await bcrypt.hash(password, 5);
+        console.log(hashedPassword);
 
-    const hasedPassword = await bcrypt.hash(password, 5);
-    console.log(hasedPassword);
-
-    await UserModel.create({
-        email: email,
-        password: hasedPassword,
-        name: name
-    });
-    res.json({
-        message: "User signed up successfully"
-    });
+        await UserModel.create({
+            email: email,
+            password: hashedPassword,
+            name: name
+        });
+        return res.json({
+            message: "User signed up successfully"
+        });
+    } catch (e) {
+        return res.status(500).json({
+            message: "Error signing up"
+        });
+    }
 });
 
 app.post("/signin", async function (req, res) {
