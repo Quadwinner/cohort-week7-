@@ -4,18 +4,21 @@ const { UserModel, TodoModel } = require("./db");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const path = require("path");
+const bodyParser = require('body-parser');
 
 const JWT_SECRET = "mynmaeisshubham ";
 
 mongoose.connect("mongodb+srv://shubhamkush0123:aBW6uW9FUUqbbZ86@cluster0.obpzn.mongodb.net/todo-shubham");
 const app = express();
+const port = 3000;
+
 app.use(express.json());
+app.use(bodyParser.json());
 
 app.post("/signup", async function (req, res) {
     const email = req.body.email;
     const password = req.body.password;
     const name = req.body.name;
-
 
     const hasedPassword = await bcrypt.hash(password, 5);
     console.log(hasedPassword);
@@ -26,7 +29,7 @@ app.post("/signup", async function (req, res) {
         name: name
     });
     res.json({
-        message: "user created successfully"
+        message: "User signed up successfully"
     });
 });
 
@@ -34,17 +37,28 @@ app.post("/signin", async function (req, res) {
     const email = req.body.email;
     const password = req.body.password;
 
-    const user = await UserModel.findOne({
+    const response = await UserModel.findOne({
         email: email,
-        password: password
+        
     });
-    console.log(user);
-    if (user) {
+    console.log(response);
+
+    if (!response) {
+        res.status(403).json({
+            message: "user in not exist in the database"
+        });
+        return;
+    }
+
+    const passwordMatch = await bcrypt.compare(password, response.password);
+
+    if (passwordMatch) {
         const token = jwt.sign({
-            id: user._id.toString()
+            id: response._id.toString()
         }, JWT_SECRET);
         res.json({
-            token: token
+            token: token,
+            message: 'Signed in successfully'
         });
     } else {
         res.status(403).json({
@@ -62,7 +76,8 @@ app.post("/todo", auth, function (req, res) {
     });
 
     res.json({
-        userId: userId
+        userId: userId,
+        message: 'Todo created successfully'
     });
 });
 
@@ -98,6 +113,6 @@ app.get('/', function (req, res) {
     res.sendFile(path.join(__dirname, 'test', 'index.html'));
 });
 
-app.listen(3000, () => {
-    console.log("Server is running on port 3000");
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
